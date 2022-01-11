@@ -1,5 +1,8 @@
-﻿// 银杏自用的卡通线渲染着色器
-Shader "Ginkgo/GK_CartoonShader"
+﻿/*
+* Author：曹谦
+* 这份文件是用于实现卡通渲染的，需要挂载在待渲染的模型上
+*/
+Shader "Custom/MyCartoonShader"
 {
 	Properties
 	{
@@ -185,7 +188,6 @@ Shader "Ginkgo/GK_CartoonShader"
 			ENDCG
 		}
 		
-		//边缘变色中间不变色的颜色混合方法（曲线为cos）
 		Pass
 		{
 			Name "SubLight"
@@ -280,5 +282,5 @@ Shader "Ginkgo/GK_CartoonShader"
 			ENDCG
 		}
 	}
-	FallBack "Specular"//反射通道
+	FallBack "Specular"
 }
