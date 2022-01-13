@@ -8,7 +8,9 @@ Shader "Custom/MySoftParticle" {
 	Properties{
 		_MainTex("Particle Texture", 2d) = "white" {}
 		_Brightness("亮度", Range(0,10)) = 1.0
-		_ColorBlendAlpha("Color混合度",Range(0,1)) = 1
+		[MaterialToggle] _ColorBlendOption("色彩混合方法(相乘)/(趋近)",Float) = 1
+		_ColorBlendAlpha("趋近混合度",Range(0,1)) = 1
+		[MaterialToggle] _MulOption("预乘(启用)/(不启用)",Float) = 1
 	}
 
 	SubShader{
@@ -39,6 +41,8 @@ Shader "Custom/MySoftParticle" {
 			fixed4 _TintColor;
 			float _Brightness;
 			float _ColorBlendAlpha;
+			float _ColorBlendOption;
+			float _MulOption;
 
 			struct appdata_t {
 				float4 vertex : POSITION;
@@ -83,9 +87,14 @@ Shader "Custom/MySoftParticle" {
 				//float4 rawTex = tex2D(_CameraDepthTexture, i.texcoord);//查看相机深度图
 				float4 rawTex = tex2D(_MainTex, i.texcoord);//获取原始材质
 				//float4 finTex = AddColorToTex(rawTex, _TintColor, 1);//材质静态颜色混合
-				float4 finTex = AddColorToTex(rawTex, float4(i.color.rgb, 1), _ColorBlendAlpha);//材质动态颜色混合(需要unity提供的color参数)
 
-				finTex.a *= i.color.a;
+				float4 finTex = lerp(rawTex * i.color, AddColorToTex(float4(rawTex.rgb, rawTex.a* i.color.a), float4(i.color.rgb, 1), _ColorBlendAlpha), 1 - _ColorBlendOption);//相乘/趋近
+				//方案1：趋近
+				//float4 finTex = AddColorToTex(rawTex, float4(i.color.rgb, 1), _ColorBlendAlpha);//材质动态颜色混合(需要unity提供的color参数)
+				//finTex.a *= i.color.a;
+
+				//方案2：乘算
+				//float4 finTex = rawTex* i.color;
 //#ifdef SOFTPARTICLES_ON
 				float4 sceneZ = LinearEyeDepth(tex2Dproj(_CameraDepthTexture, i.depth));
 				//float sceneZ = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE_PROJ(_CameraDepthTexture, UNITY_PROJ_COORD(i.depth)));
@@ -94,7 +103,7 @@ Shader "Custom/MySoftParticle" {
 				float depthFade = saturate((sceneZ - partZ));//深度参数转化透明度
 				finTex.a*= depthFade;
 //#endif
-				finTex.rgb *= finTex.a;//预乘
+				finTex.rgb = lerp(finTex.rgb*finTex.a, finTex.rgb,1- _MulOption);//预乘
 				finTex *= _Brightness;//亮度
 				finTex.a = saturate(finTex.a);//钳制透明度
 				return finTex;
